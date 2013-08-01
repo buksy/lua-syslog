@@ -76,7 +76,7 @@ static int l_openlog(lua_State *L)
 	char *identcp = (char *)lua_newuserdata(L, len + 1);
 	strcpy(identcp, ident);
 	/* store it in our environment table, so that it is not garbage collected */
-	lua_setfield(L, LUA_ENVIRONINDEX, "ident");
+/*	lua_setfield(L, LUA_ENVIRONINDEX, "ident"); */
 
 /*	printf("l_openlog(%s, %d, %d) len=%d\n", identcp, option, facility, len); */
 	openlog(identcp, option, facility);
@@ -127,8 +127,9 @@ static int l_syslog(lua_State *L)
 static int l_closelog(lua_State *L)
 {
 	/* release any memory reserved for ident in a previous call to l_openlog */
-	lua_pushnil(L);
+/*	lua_pushnil(L);
 	lua_setfield(L, LUA_ENVIRONINDEX, "ident");
+*/
 	closelog();
 	return 0;
 }
@@ -144,12 +145,10 @@ static const struct luaL_Reg mylib [] = {
 	lua_pushnumber(L, opt); \
 	lua_setfield(L, -2, #opt)
 
-int luaopen_syslog (lua_State *L)
+LUALIB_API int luaopen_syslog (lua_State *L)
 {
 	/* create a module environment to keep the ident string */
-	lua_newtable(L);
-	lua_replace(L, LUA_ENVIRONINDEX);
-	luaL_register(L, "syslog", mylib);
+	luaL_newlib(L, mylib);
 	/* add options used by openlog() to the lib table */
 	ADD_OPT(LOG_CONS);
 	ADD_OPT(LOG_NDELAY);
