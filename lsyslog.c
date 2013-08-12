@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 
+static const char * LUA_SYSLOG_INDEX = "lua.syslog_r.key";
+
 /* openlog(ident, option[, facility]) 
  *	ident:		string
  *	option:		number, e.g. syslog.LOG_ODELAY + syslog.LOG_PID 
@@ -79,7 +81,13 @@ static int l_openlog(lua_State *L)
 /*	lua_setfield(L, LUA_ENVIRONINDEX, "ident"); */
 
 /*	printf("l_openlog(%s, %d, %d) len=%d\n", identcp, option, facility, len); */
-	openlog(identcp, option, facility);
+	struct syslog_data *data = (struct syslog_data * ) lua_newuserdata(L, sizeof (struct syslog_data));
+	openlog(identcp, option, facility, data);
+//      Store the data in the global index 
+	lua_pushstring (L, LUA_SYSLOG_INDEX );  /* push address */
+	   lua_pushuserdata(L, data);  /* push value */
+    /* registry[&Key] = myNumber */
+    lua_settable(L, LUA_REGISTRYINDEX);
 	return 0;
 }
 
