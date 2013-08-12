@@ -85,9 +85,9 @@ static int l_openlog(lua_State *L)
 	openlog(identcp, option, facility, data);
 //      Store the data in the global index 
 	lua_pushstring (L, LUA_SYSLOG_INDEX );  /* push address */
-	   lua_pushuserdata(L, data);  /* push value */
+	lua_pushuserdata(L, data);  /* push value */
     /* registry[&Key] = myNumber */
-    lua_settable(L, LUA_REGISTRYINDEX);
+    	lua_settable(L, LUA_REGISTRYINDEX);
 	return 0;
 }
 
@@ -125,7 +125,10 @@ static int l_syslog(lua_State *L)
 	const char *msg = luaL_checkstring(L, 2);	
 
 /*	printf("l_syslog(%d, %s)\n", priority, msg); */
-	syslog(priority, "%s", msg);
+	lua_pushstring(L, LUA_SYSLOG_INDEX);  /* push address */
+    	lua_gettable(L, LUA_REGISTRYINDEX);  /* retrieve value */
+    	struct syslog_data *data = lua_touserdata(L, -1); 
+	syslog_r(priority, data, "%s", msg);
 	return 0;
 }
 
@@ -138,7 +141,10 @@ static int l_closelog(lua_State *L)
 /*	lua_pushnil(L);
 	lua_setfield(L, LUA_ENVIRONINDEX, "ident");
 */
-	closelog();
+	lua_pushstring (L, LUA_SYSLOG_INDEX);
+	lua_gettable(L, LUA_REGISTRYINDEX);  /* retrieve value */
+        struct syslog_data *data = lua_touserdata(L, -1);
+	closelog_r (data);
 	return 0;
 }
 

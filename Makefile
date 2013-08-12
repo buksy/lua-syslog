@@ -11,7 +11,7 @@ WARN= -pedantic -Wall -Werror
 MYNAME= syslog
 MYLIB= $(MYNAME)
 T= $(MYLIB).so
-OBJS= l$(MYLIB).o
+OBJS= l$(MYLIB).o syslog_r.o
 TEST= test.lua
 
 all:	test
@@ -20,6 +20,7 @@ test:	$T
 	$(LUA) $(TEST)
 
 o:	$(MYLIB).o
+	syslog_r.o
 
 so:	$T
 
