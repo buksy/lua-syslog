@@ -57,7 +57,7 @@ void __vsyslog_r (int pri, struct syslog_data *, size_t (*)(char *, size_t),
 void
 vsyslog_r (int pri, struct syslog_data *data, const char *fmt, va_list ap)
 {
-  const char *ident;
+  char *ident = NULL;
   __vsyslog_r (pri, data, NULL, fmt, ap);
   /* close the socket without losing log_tag */
   ident = data->log_tag;
@@ -106,7 +106,6 @@ __vsyslog_r (int pri, struct syslog_data *data,
   /* Check priority against setlogmask values. */
   if (!(LOG_MASK (LOG_PRI (pri)) & data->log_mask))
     return;
-
   saved_errno = errno;
 
   /* Set default facility if none specified. */
@@ -336,7 +335,8 @@ openlog_r (const char *ident, int logstat, int logfac,
 void
 closelog_r (struct syslog_data *data)
 {
-  (void) close (data->log_file);
+  if (data->log_file > -1)
+    (void) close (data->log_file);
   data->log_file = -1;
   data->connected = 0;
   data->log_tag = NULL;

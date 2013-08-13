@@ -8,8 +8,10 @@
 
 #include <stdio.h>
 #include "syslog_r.h"
+
 static const char *LUA_SYSLOG_INDEX = "lua.syslog_r.key";
 
+static int l_closelog (lua_State * L);
 
 /* openlog(ident, option[, facility]) 
  *	ident:		string
@@ -79,22 +81,33 @@ l_openlog (lua_State * L)
    * memory */
   char *identcp = (char *) lua_newuserdata (L, len + 1);
   strcpy (identcp, ident);
-  /* store it in our environment table, so that it is not garbage collected */
-/*	lua_setfield(L, LUA_ENVIRONINDEX, "ident"); */
+  //l_closelog (L);
+  lua_pushstring (L, LUA_SYSLOG_INDEX);	/* push address */
+  lua_gettable (L, LUA_REGISTRYINDEX);	/* retrieve value */
+  struct syslog_data *data = lua_touserdata (L, -1);
+  if (data == NULL)
+    {
+      //Store the data in the global index 
+      lua_settop (L, 0);
+      lua_pushstring (L, LUA_SYSLOG_INDEX);
+      data =
+	(struct syslog_data *) lua_newuserdata (L,
+						sizeof (struct syslog_data));
 
-/*	printf("l_openlog(%s, %d, %d) len=%d\n", identcp, option, facility, len); */
-  lua_pushstring (L, LUA_SYSLOG_INDEX);
-  struct syslog_data *data =
-    (struct syslog_data *) lua_newuserdata (L, sizeof (struct syslog_data));
+      lua_settable (L, LUA_REGISTRYINDEX);
+      data->log_tag = NULL;
+      data->log_file = -1;
+      data->log_mask = -1;
+      data->log_stat = -1;
+      data->log_fac = -1;
+    }
   openlog_r (identcp, option, facility, data);
-//      Store the data in the global index 
-  lua_settable (L, LUA_REGISTRYINDEX);
   return 0;
 }
 
 /* syslog(priority, message) 
  *	priority:	string, one of "LOG_..."
- *	message:	string
+i *	message:	string
  *
  */
 static int
@@ -126,10 +139,25 @@ l_syslog (lua_State * L)
   int priority = cprio[luaL_checkoption (L, 1, NULL, lprio)];
   const char *msg = luaL_checkstring (L, 2);
 
-/*	printf("l_syslog(%d, %s)\n", priority, msg); */
   lua_pushstring (L, LUA_SYSLOG_INDEX);	/* push address */
   lua_gettable (L, LUA_REGISTRYINDEX);	/* retrieve value */
   struct syslog_data *data = lua_touserdata (L, -1);
+  if (data == NULL)
+    {
+      //Store the data in the global index 
+      lua_settop (L, 0);
+      lua_pushstring (L, LUA_SYSLOG_INDEX);
+      data =
+	(struct syslog_data *) lua_newuserdata (L,
+						sizeof (struct syslog_data));
+
+      lua_settable (L, LUA_REGISTRYINDEX);
+      data->log_tag = NULL;
+      data->log_file = -1;
+      data->log_mask = -1;
+      data->log_stat = -1;
+      data->log_fac = -1;
+    }
   syslog_r (priority, data, "%s", msg);
   return 0;
 }
@@ -140,14 +168,11 @@ l_syslog (lua_State * L)
 static int
 l_closelog (lua_State * L)
 {
-  /* release any memory reserved for ident in a previous call to l_openlog */
-/*	lua_pushnil(L);
-	lua_setfield(L, LUA_ENVIRONINDEX, "ident");
-*/
   lua_pushstring (L, LUA_SYSLOG_INDEX);
   lua_gettable (L, LUA_REGISTRYINDEX);	/* retrieve value */
   struct syslog_data *data = lua_touserdata (L, -1);
-  closelog_r (data);
+  if (data)
+    closelog_r (data);
   return 0;
 }
 
